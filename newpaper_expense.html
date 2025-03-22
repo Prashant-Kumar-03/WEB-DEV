@@ -1,0 +1,274 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Newspaper Expense Calculator</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        .input-section {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        table {
+            width: 100%;
+            margin: 20px 0;
+            border-collapse: collapse;
+            background: white;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        .hidden { display: none; }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background-color: #45a049; }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            max-width: 500px;
+            width: 90%;
+        }
+        .modal-options {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            justify-content: center;
+        }
+        .month-select {
+            margin: 20px 0;
+            text-align: center;
+        }
+        select {
+            padding: 8px;
+            margin: 10px 0;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div class="input-section">
+        <h2>Newspaper Expense Calculator</h2>
+        <label>Enter Year: <input type="number" id="year" min="1900" required></label>
+        <button onclick="showPriceInputs()">Continue</button>
+    </div>
+
+    <div id="priceInputs" class="hidden">
+        <div class="input-section">
+            <h3>Enter Daily Newspaper Prices (₹)</h3>
+            <table>
+                <tr><th>Day</th><th>Price</th></tr>
+                <tr><td>Monday</td><td><input type="number" id="mon" step="0.01" required></td></tr>
+                <tr><td>Tuesday</td><td><input type="number" id="tue" step="0.01" required></td></tr>
+                <tr><td>Wednesday</td><td><input type="number" id="wed" step="0.01" required></td></tr>
+                <tr><td>Thursday</td><td><input type="number" id="thu" step="0.01" required></td></tr>
+                <tr><td>Friday</td><td><input type="number" id="fri" step="0.01" required></td></tr>
+                <tr><td>Saturday</td><td><input type="number" id="sat" step="0.01" required></td></tr>
+                <tr><td>Sunday</td><td><input type="number" id="sun" step="0.01" required></td></tr>
+            </table>
+            <button onclick="validatePrices()">Next</button>
+        </div>
+    </div>
+
+    <!-- Choice Modal -->
+    <div id="choiceModal" class="modal">
+        <div class="modal-content">
+	<h6 style="color: red;"><b>Mandatory: Zoom out your screen to 80%</b></h6>
+	
+            <h3>Select Calculation Type</h3>
+            <div class="modal-options">
+                <button onclick="showAnnualResult()">Annual</button>
+                <button onclick="showMonthSelection()">Monthly</button>
+            </div>
+	    <br>
+	    
+        </div>
+    </div>
+
+    <!-- Month Selection Modal -->
+    <div id="monthModal" class="modal">
+        <div class="modal-content">
+            <h3>Select Month</h3>
+            <div class="month-select">
+                <select id="monthSelect">
+                    <option value="0">January</option>
+                    <option value="1">February</option>
+                    <option value="2">March</option>
+                    <option value="3">April</option>
+                    <option value="4">May</option>
+                    <option value="5">June</option>
+                    <option value="6">July</option>
+                    <option value="7">August</option>
+                    <option value="8">September</option>
+                    <option value="9">October</option>
+                    <option value="10">November</option>
+                    <option value="11">December</option>
+                </select>
+                <button onclick="showMonthlyResult()">Calculate</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Result Modal -->
+    <div id="resultModal" class="modal">
+        <div class="modal-content">
+            <div id="resultContent"></div>
+            <button onclick="closeAllModals()">Close</button>
+        </div>
+    </div>
+
+    <script>
+        function showPriceInputs() {
+            const year = document.getElementById('year').value;
+            if (!year) {
+                alert('Please enter a valid year');
+                return;
+            }
+            document.getElementById('priceInputs').classList.remove('hidden');
+        }
+
+        function validatePrices() {
+            const inputs = ['mon','tue','wed','thu','fri','sat','sun'];
+            const valid = inputs.every(id => {
+                const value = document.getElementById(id).value;
+                return value && !isNaN(value);
+            });
+            
+            if (!valid) {
+                alert('Please fill all price fields with valid numbers');
+                return;
+            }
+            document.getElementById('choiceModal').style.display = 'flex';
+        }
+
+        function closeAllModals() {
+            document.querySelectorAll('.modal').forEach(modal => {
+                modal.style.display = 'none';
+            });
+        }
+
+        function showAnnualResult() {
+            closeAllModals();
+            const result = calculateExpense();
+            const monthlyBreakdown = calculateMonthlyBreakdown();
+            
+            let html = `<h3>Annual Expense: ₹${result.total.toFixed(2)}</h3>`;
+            html += "<h4>Monthly Breakdown:</h4><table>";
+            monthlyBreakdown.forEach((month, index) => {
+                html += `<tr><td>${month.name}</td><td>₹${month.value.toFixed(2)}</td></tr>`;
+            });
+            html += `</table>`;
+            document.getElementById('resultContent').innerHTML = html;
+            document.getElementById('resultModal').style.display = 'flex';
+        }
+
+        function showMonthSelection() {
+            closeAllModals();
+            document.getElementById('monthModal').style.display = 'flex';
+        }
+
+        function showMonthlyResult() {
+            closeAllModals();
+            const month = parseInt(document.getElementById('monthSelect').value, 10); // Parse month as integer
+            const result = calculateExpense(month);
+            
+            const monthNames = ["January", "February", "March", "April", "May", "June",
+                "July", "August", "September", "October", "November", "December"];
+            
+            const html = `<h3>${monthNames[month]} Expense: ₹${result.total.toFixed(2)}</h3>`;
+            document.getElementById('resultContent').innerHTML = html;
+            document.getElementById('resultModal').style.display = 'flex';
+        }
+
+        function getWeekdayCounts(year, month = null) {
+            const counts = [0, 0, 0, 0, 0, 0, 0];
+            const startMonth = month !== null ? month : 0;
+            const endMonth = month !== null ? month + 1 : 12;
+
+            for (let m = startMonth; m < endMonth; m++) {
+                const date = new Date(year, m, 1);
+                while (date.getMonth() === m) {
+                    counts[date.getDay()]++;
+                    date.setDate(date.getDate() + 1);
+                }
+            }
+            return counts;
+        }
+
+        function calculateExpense(month = null) {
+            const year = document.getElementById('year').value;
+            const prices = {
+                1: parseFloat(document.getElementById('mon').value),
+                2: parseFloat(document.getElementById('tue').value),
+                3: parseFloat(document.getElementById('wed').value),
+                4: parseFloat(document.getElementById('thu').value),
+                5: parseFloat(document.getElementById('fri').value),
+                6: parseFloat(document.getElementById('sat').value),
+                0: parseFloat(document.getElementById('sun').value)
+            };
+
+            const counts = getWeekdayCounts(year, month);
+            const total = Object.entries(prices).reduce((sum, [day, price]) => 
+                sum + (counts[day] * price), 0);
+
+            return { total, counts };
+        }
+
+        function calculateMonthlyBreakdown() {
+            const year = document.getElementById('year').value;
+            const prices = {
+                1: parseFloat(document.getElementById('mon').value),
+                2: parseFloat(document.getElementById('tue').value),
+                3: parseFloat(document.getElementById('wed').value),
+                4: parseFloat(document.getElementById('thu').value),
+                5: parseFloat(document.getElementById('fri').value),
+                6: parseFloat(document.getElementById('sat').value),
+                0: parseFloat(document.getElementById('sun').value)
+            };
+
+            const monthNames = ["January", "February", "March", "April", "May", "June",
+                "July", "August", "September", "October", "November", "December"];
+
+            return Array.from({length: 12}, (_, month) => {
+                const counts = getWeekdayCounts(year, month);
+                const total = Object.entries(prices).reduce((sum, [day, price]) => 
+                    sum + (counts[day] * price), 0);
+                return { name: monthNames[month], value: total };
+            });
+        }
+    </script>
+</body>
+</html>
